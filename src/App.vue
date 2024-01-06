@@ -1,69 +1,31 @@
-<template>
-    <section class="searchbar">
-        <input type="text" v-model="search">
-        <button @click="searchPokemon(search)">Search</button>
-    </section>
-    <main v-if="fetched">
-        <section v-if="pokemon != null">
-            <div>{{ pokemon.name }}</div>
-            <div v-for="(p, i) in pokemon.stats" :key="i">
-                <p>{{ p.stat.name }}: <span>{{ p.base_stat }}</span></p>
-            </div>
-        </section>
-        <section v-else>
-            <h2>Pokemon no encontrado</h2>
-        </section>
-    </main>
-</template>
-
 <script setup lang="ts">
-    import { ref } from 'vue';
+    import { ref } from 'vue'
+    import { useInfiniteScroll } from '@vueuse/core'
+    import Header from './components/Header.vue'
     import PokeAPI from './services/pokeapi.ts'
 
-    const poke = new PokeAPI();
-    const pokemon = poke.pokemon;
-    const search = ref('')
-    const fetched = ref(false)
+    const page = ref(0)
+    const el = ref<HTMLElement | null>(null)
+    const pokemons = new PokeAPI()
+    const pokemon = ref(pokemons.pokemons)
 
-    const searchPokemon = async (q: string) =>{
-        const variable = q.toLowerCase()
-        await poke.fetchPokemon(variable)
-        fetched.value = true
-    }
+    useInfiniteScroll(
+        el,
+        async () => {
+            page.value++
+            await pokemons.fetch(page.value)
+        },
+        { distance: 10 }
+    )
 </script>
 
-<style scoped>
-    main{
-        margin-top: 15px;
-        width: 300px;
-        color: #FFFFFF;
-        font-size: 20px;
-        font-family: 'Courier New', Courier, monospace;
-        font-weight: 700;
-    }
-    section div p{
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-    }
-    input{
-        width: 75%;
-        padding: 5px 0;
-        outline: none;
-        border: none;
-        border-radius: 5px;
-    }
-    button{
-        width: 20%;
-        padding: 5px 0;
-        border: none;
-        border-radius: 5px;
-        background: #3C3C3C;
-        cursor: pointer;
-        color: #ffffff;
-    }
-    .searchbar{
-        display: flex;
-        justify-content: space-between;
-    }
-</style>
+<template>
+    <Header />
+    <main ref="el" class="h-screen overflow-y-auto p-[50px] flex flex-wrap justify-center gap-5">
+        <div v-for="(item, i) in pokemon" :key="i" class="min-h-[200px] min-w-[150px] rounded shadow relative cursor-pointer">
+            <img v-if="item.sprites.front_default" :src="item.sprites.front_default" class="mx-auto w-full transition ease-in-out delay-300 hover:scale-90">
+            <img v-else src="https://d2h3d42vkj4fuu.cloudfront.net/1ba8606fc5bacee4f88bcd60440e4a2b">
+            <p class="font-bold text-center">{{ item.name[0].toUpperCase() + item.name.slice(1,item.name.length) }}</p>
+        </div>
+    </main>
+</template>
