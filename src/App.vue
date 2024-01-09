@@ -1,31 +1,27 @@
 <script setup lang="ts">
     import { ref } from 'vue'
-    import { useInfiniteScroll } from '@vueuse/core'
     import Header from './components/Header.vue'
+    import fetchMounted from './components/fetchMounted.vue'
+    import fetchPokemon from './components/fetchPokemon.vue'
     import PokeAPI from './services/pokeapi.ts'
 
-    const page = ref(0)
-    const el = ref<HTMLElement | null>(null)
     const pokemons = new PokeAPI()
-    const pokemon = ref(pokemons.pokemons)
+    const allPokemons = ref(pokemons.fetchedPokemons)
 
-    useInfiniteScroll(
-        el,
-        async () => {
-            page.value++
-            await pokemons.fetch(page.value)
-        },
-        { distance: 10 }
-    )
+    const searchPokemon = async (q: string) =>{
+        await pokemons.fetchPokemons(q)
+    }
 </script>
 
 <template>
-    <Header />
-    <main ref="el" class="h-screen overflow-y-auto p-[50px] flex flex-wrap justify-center gap-5">
-        <div v-for="(item, i) in pokemon" :key="i" class="min-h-[200px] min-w-[150px] rounded shadow relative cursor-pointer">
-            <img v-if="item.sprites.front_default" :src="item.sprites.front_default" class="mx-auto w-full transition ease-in-out delay-300 hover:scale-90">
-            <img v-else src="https://d2h3d42vkj4fuu.cloudfront.net/1ba8606fc5bacee4f88bcd60440e4a2b">
-            <p class="font-bold text-center">{{ item.name[0].toUpperCase() + item.name.slice(1,item.name.length) }}</p>
-        </div>
-    </main>
+    <Header @fetchPokemons="searchPokemon"/>
+    <Suspense>
+        <template #default>
+            <fetchMounted v-if="allPokemons.length === 0" />
+            <fetchPokemon v-else :pokemons="allPokemons"/>
+        </template>
+        <template #fallback>
+            <p>Cargando...</p>
+        </template>
+    </Suspense>
 </template>
