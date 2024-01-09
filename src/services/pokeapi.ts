@@ -3,7 +3,8 @@ import { ref } from "vue"
 export default class PokeAPI {
     pokemonURL = ref([])
     pokemons = ref([])
-    total_pokemons = ref(0)
+    allPokemons = ref([])
+    fetchedPokemons = ref([])
 
     async fetchData(page: number){
         try{
@@ -23,6 +24,27 @@ export default class PokeAPI {
             const response = await fetch(this.pokemonURL.value[i].url)
             const json = await response.json()
             this.pokemons.value = [...this.pokemons.value, json]
+        }
+    }
+
+    async fetchAll(){
+        const response = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=10000`)
+        const json = await response.json()
+        this.allPokemons.value = json.results
+        for(let i = 0; i < this.allPokemons.value.length; i++){
+            const response = await fetch(this.allPokemons.value[i].url)
+            const json =  await response.json()
+            this.allPokemons.value[i] = json 
+        }
+    }
+
+    async fetchPokemons(q: string){
+        this.fetchedPokemons.value = []
+        await this.fetchAll()
+        for(let i = 0; i < this.allPokemons.value.length; i++){
+            if(this.allPokemons.value[i].name.includes(q)){
+                this.fetchedPokemons.value.push(this.allPokemons.value[i])
+            }
         }
     }
 }
